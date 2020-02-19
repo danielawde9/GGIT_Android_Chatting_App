@@ -1,0 +1,2 @@
+include ':ggit-chatting-app-start', ':ggit-chatting-app-final'
+rootProject.name='GGIT Android Chatting App'
