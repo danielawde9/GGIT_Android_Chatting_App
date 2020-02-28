@@ -12,4 +12,10 @@
         <item name="android:textColor">@color/colorTitle</item>
 
     </style>
+
+    <!--Style for Splash Screen-->
+    <style name="SplashScreenTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name ="android:windowBackground"> @drawable/splash</item>
+    </style>
+
 </resources>

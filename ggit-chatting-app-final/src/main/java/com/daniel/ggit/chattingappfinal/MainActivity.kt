@@ -5,7 +5,6 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -14,19 +13,17 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.firebase.ui.database.SnapshotParser
-import com.google.android.gms.auth.api.Auth
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.api.GoogleApiClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import de.hdodenhof.circleimageview.CircleImageView
 
-class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedListener {
+class MainActivity : AppCompatActivity() {
 
 
     class MessageViewHolder(v: View?) : RecyclerView.ViewHolder(v!!) {
@@ -37,10 +34,10 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
 
     }
 
-    private val TAG = "MainActivity"
+//    private val TAG = "MainActivity"
     val MESSAGES_CHILD = "messages"
 //    private val REQUEST_INVITE = 1
-    private val REQUEST_IMAGE = 2
+//    private val REQUEST_IMAGE = 2
 //    private val LOADING_IMAGE_URL = "https://www.google.com/images/spin-32.gif"
 //    val DEFAULT_MSG_LENGTH_LIMIT = 10
     val ANONYMOUS = "anonymous"
@@ -48,7 +45,6 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
     private var mUsername: String? = null
     private var mPhotoUrl: String? = null
     private var mSharedPreferences: SharedPreferences? = null
-    private var mGoogleApiClient: GoogleApiClient? = null
 //    private val MESSAGE_URL = "http://friendlychat.firebase.google.com/message/"
 
     private var mSendButton: Button? = null
@@ -74,7 +70,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
         mFirebaseAuth = FirebaseAuth.getInstance()
         mFirebaseUser = mFirebaseAuth!!.currentUser
         if (mFirebaseUser == null) { // Not signed in, launch the Sign In activity
-            startActivity(Intent(this, SignInActivity::class.java))
+            startActivity(Intent(this, SplashActivity::class.java))
             finish()
             return
         } else {
@@ -83,10 +79,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
                 mPhotoUrl = mFirebaseUser!!.photoUrl.toString()
             }
         }
-        mGoogleApiClient = GoogleApiClient.Builder(this)
-            .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
-            .addApi(Auth.GOOGLE_SIGN_IN_API)
-            .build()
+
         // Initialize ProgressBar and RecyclerView.
         mProgressBar = findViewById(R.id.progressBar)
         mMessageRecyclerView = findViewById(R.id.messageRecyclerView)
@@ -175,6 +168,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
                 }
             }
         })
+
         mMessageRecyclerView?.adapter = mFirebaseAdapter
         mMessageEditText = findViewById(R.id.messageEditText)
         mMessageEditText!!.addTextChangedListener(object : TextWatcher {
@@ -197,23 +191,21 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
 
             override fun afterTextChanged(editable: Editable) {}
         })
-        mSendButton = findViewById<Button>(R.id.sendButton)
-        mSendButton!!.setOnClickListener(object : View.OnClickListener {
-            override fun onClick(view: View?) {
-                val friendlyMessage = mUsername?.let {
-                    mPhotoUrl?.let { it1 ->
-                        FriendlyMessage(
-                            mMessageEditText!!.text.toString(),
-                            it,
-                            it1
-                        )
-                    }
+        mSendButton = findViewById(R.id.sendButton)
+        mSendButton!!.setOnClickListener {
+            val friendlyMessage = mUsername?.let {
+                mPhotoUrl?.let { it1 ->
+                    FriendlyMessage(
+                        mMessageEditText!!.text.toString(),
+                        it,
+                        it1
+                    )
                 }
-                mFirebaseDatabaseReference!!.child(MESSAGES_CHILD)
-                    .push().setValue(friendlyMessage)
-                mMessageEditText!!.setText("")
             }
-        })
+            mFirebaseDatabaseReference!!.child(MESSAGES_CHILD)
+                .push().setValue(friendlyMessage)
+            mMessageEditText!!.setText("")
+        }
     }
 
 
@@ -236,22 +228,23 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.OnConnectionFailedList
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.sign_out_menu -> {
-                mFirebaseAuth?.signOut()
-                Auth.GoogleSignInApi.signOut(mGoogleApiClient)
-                mUsername = ANONYMOUS
-                startActivity(Intent(this, SignInActivity::class.java))
-                finish()
+                signOut()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    override fun onConnectionFailed(connectionResult: ConnectionResult) { // An unresolvable error has occurred and Google APIs (including Sign-In) will not
-// be available.
-        Log.d(TAG, "onConnectionFailed:$connectionResult")
-        Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show()
+    private fun signOut() {
+        // [START auth_fui_signout]
+        AuthUI.getInstance()
+            .signOut(this)
+            .addOnCompleteListener {                finishAffinity()
+
+            }
+        // [END auth_fui_signout]
     }
+
 
 
 }
