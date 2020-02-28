@@ -1,15 +1,12 @@
 package com.daniel.ggit.chattingappfinal
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -26,26 +23,19 @@ import de.hdodenhof.circleimageview.CircleImageView
 class MainActivity : AppCompatActivity() {
 
 
+    // this is where we link our data to our UI
     class MessageViewHolder(v: View?) : RecyclerView.ViewHolder(v!!) {
         var messageTextView: TextView = itemView.findViewById(R.id.messageTextView)
         var messageImageView: ImageView = itemView.findViewById(R.id.messageImageView) as ImageView
         var messengerTextView: TextView = itemView.findViewById(R.id.messengerTextView)
         var messengerImageView: CircleImageView = itemView.findViewById(R.id.messengerImageView)
-
     }
 
-//    private val TAG = "MainActivity"
     val MESSAGES_CHILD = "messages"
-//    private val REQUEST_INVITE = 1
-//    private val REQUEST_IMAGE = 2
-//    private val LOADING_IMAGE_URL = "https://www.google.com/images/spin-32.gif"
-//    val DEFAULT_MSG_LENGTH_LIMIT = 10
     val ANONYMOUS = "anonymous"
-//    private val MESSAGE_SENT_EVENT = "message_sent"
+
     private var mUsername: String? = null
     private var mPhotoUrl: String? = null
-    private var mSharedPreferences: SharedPreferences? = null
-//    private val MESSAGE_URL = "http://friendlychat.firebase.google.com/message/"
 
     private var mSendButton: Button? = null
     private var mMessageRecyclerView: RecyclerView? = null
@@ -63,22 +53,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+
         // Set default username is anonymous.
         mUsername = ANONYMOUS
         // Initialize Firebase Auth
         mFirebaseAuth = FirebaseAuth.getInstance()
         mFirebaseUser = mFirebaseAuth!!.currentUser
-        if (mFirebaseUser == null) { // Not signed in, launch the Sign In activity
-            startActivity(Intent(this, SplashActivity::class.java))
-            finish()
-            return
-        } else {
-            mUsername = mFirebaseUser!!.displayName
-            if (mFirebaseUser!!.photoUrl != null) {
-                mPhotoUrl = mFirebaseUser!!.photoUrl.toString()
-            }
-        }
+        validateFirebaseUser()
 
         // Initialize ProgressBar and RecyclerView.
         mProgressBar = findViewById(R.id.progressBar)
@@ -87,14 +68,16 @@ class MainActivity : AppCompatActivity() {
         mLinearLayoutManager!!.stackFromEnd = true
         mMessageRecyclerView!!.layoutManager = mLinearLayoutManager
         mFirebaseDatabaseReference = FirebaseDatabase.getInstance().reference
+
+        // get the data and parse it using our model
         val parser: SnapshotParser<FriendlyMessage?> =
             SnapshotParser { dataSnapshot ->
-                val friendlyMessage = dataSnapshot.getValue(
-                    FriendlyMessage::class.java
-                )
+                val friendlyMessage = dataSnapshot.getValue(FriendlyMessage::class.java)
+
                 if (friendlyMessage != null) {
                     friendlyMessage.id = dataSnapshot.key
                 }
+
                 friendlyMessage!!
             }
 
@@ -106,13 +89,8 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
         mFirebaseAdapter = object :
-            FirebaseRecyclerAdapter<FriendlyMessage, MessageViewHolder>(
-                options
-            ) {
-            override fun onCreateViewHolder(
-                viewGroup: ViewGroup,
-                i: Int
-            ): MessageViewHolder {
+            FirebaseRecyclerAdapter<FriendlyMessage, MessageViewHolder>(options) {
+            override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): MessageViewHolder {
                 val inflater = LayoutInflater.from(viewGroup.context)
                 return MessageViewHolder(
                     inflater.inflate(
@@ -129,24 +107,13 @@ class MainActivity : AppCompatActivity() {
                 friendlyMessage: FriendlyMessage
             ) {
                 mProgressBar!!.visibility = ProgressBar.INVISIBLE
-                if (friendlyMessage.text != null) {
-                    viewHolder.messageTextView.text = friendlyMessage.text
-                    viewHolder.messageTextView.visibility = TextView.VISIBLE
-                    viewHolder.messageImageView.visibility = ImageView.GONE
-                }
+                viewHolder.messageTextView.text = friendlyMessage.text
+                viewHolder.messageTextView.visibility = TextView.VISIBLE
+                viewHolder.messageImageView.visibility = ImageView.GONE
                 viewHolder.messengerTextView.text = friendlyMessage.name
-                if (friendlyMessage.photoUrl == null) {
-                    viewHolder.messengerImageView.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            this@MainActivity,
-                            R.drawable.ic_account_circle_black
-                        )
-                    )
-                } else {
-                    Glide.with(this@MainActivity)
-                        .load(friendlyMessage.photoUrl)
-                        .into(viewHolder.messengerImageView)
-                }
+                Glide.with(this@MainActivity)
+                    .load(friendlyMessage.photoUrl)
+                    .into(viewHolder.messengerImageView)
             }
         }
 
@@ -171,26 +138,18 @@ class MainActivity : AppCompatActivity() {
 
         mMessageRecyclerView?.adapter = mFirebaseAdapter
         mMessageEditText = findViewById(R.id.messageEditText)
-        mMessageEditText!!.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                charSequence: CharSequence,
-                i: Int,
-                i1: Int,
-                i2: Int
-            ) {
-            }
 
-            override fun onTextChanged(
-                charSequence: CharSequence,
-                i: Int,
-                i1: Int,
-                i2: Int
-            ) {
+        mMessageEditText!!.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}
+
+            override fun onTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {
                 mSendButton!!.isEnabled = charSequence.toString().trim { it <= ' ' }.isNotEmpty()
             }
 
             override fun afterTextChanged(editable: Editable) {}
         })
+
+
         mSendButton = findViewById(R.id.sendButton)
         mSendButton!!.setOnClickListener {
             val friendlyMessage = mUsername?.let {
@@ -205,6 +164,19 @@ class MainActivity : AppCompatActivity() {
             mFirebaseDatabaseReference!!.child(MESSAGES_CHILD)
                 .push().setValue(friendlyMessage)
             mMessageEditText!!.setText("")
+        }
+    }
+
+    private fun validateFirebaseUser() {
+        if (mFirebaseUser == null) { // Not signed in, launch the Sign In activity
+            startActivity(Intent(this, SplashActivity::class.java))
+            finish()
+            return
+        } else {
+            mUsername = mFirebaseUser!!.displayName
+            if (mFirebaseUser!!.photoUrl != null) {
+                mPhotoUrl = mFirebaseUser!!.photoUrl.toString()
+            }
         }
     }
 
@@ -245,6 +217,7 @@ class MainActivity : AppCompatActivity() {
         // [END auth_fui_signout]
     }
 
-
-
 }
+
+//TODO add comments
+//TODO add ggit start code
