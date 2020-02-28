@@ -7,6 +7,6 @@
     <item android:gravity="center" >
         <bitmap
             android:gravity="fill_horizontal|fill_vertical"
-            android:src="@drawable/ggit_logo"/>
+            android:src="@drawable/ggit_logo2"/>
     </item>
 </layer-list>

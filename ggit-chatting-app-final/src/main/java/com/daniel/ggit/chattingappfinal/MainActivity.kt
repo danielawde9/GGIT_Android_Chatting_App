@@ -239,8 +239,8 @@ class MainActivity : AppCompatActivity() {
         // [START auth_fui_signout]
         AuthUI.getInstance()
             .signOut(this)
-            .addOnCompleteListener {                finishAffinity()
-
+            .addOnCompleteListener {
+                finishAffinity()
             }
         // [END auth_fui_signout]
     }
