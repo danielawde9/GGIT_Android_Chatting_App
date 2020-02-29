@@ -1,42 +1,13 @@
-package com.daniel.ggit.chattingappfinal
+package com.daniel.ggit.chatting
 
 import android.app.Activity
 import android.content.Intent
-import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 
 class SplashActivity : AppCompatActivity() {
-    // initilize the firebase authentication system
-    private var auth: FirebaseAuth? = null
-    // initilize the user
-    private var currentUser: FirebaseUser? = null
-    // Sign In Number
     private val RC_SIGN_IN = 123
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        // super function that needs to be called
-        super.onCreate(savedInstanceState)
-
-        // get the user authentication profile
-        auth = FirebaseAuth.getInstance()
-        // get the current user saved on the device
-        currentUser = auth!!.currentUser
-
-        // if the user exist
-        if (auth!!.currentUser != null) {
-            // already signed in go to MainActivity
-            startActivity(Intent(this, MainActivity::class.java))
-        }
-        // user is not logged in
-        else {
-            // go to function create signInIntent
-            createSignInIntent()
-        }
-    }
 
     private fun createSignInIntent() {
         // [START auth_fui_create_intent]
@@ -75,6 +46,5 @@ class SplashActivity : AppCompatActivity() {
         }
     }
     // [END auth_fui_result]
-
 
 }
